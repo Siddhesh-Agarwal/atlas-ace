@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		--ink: #14213a;
+		--ink-deep: #0d1626;
+		--parchment: #f1e8d2;
+		--parchment-dim: #e4d8b8;
+		--brass: #c08a2e;
+		--brass-bright: #d9a548;
+		--teal: #3f6b54;
+		--rust: #b0492f;
+		--line: rgba(241, 232, 210, 0.16);
+		--radius: 0.35rem;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	html,
+	body,
+	#root {
+		height: 100%;
+	}
+
+	body {
+		margin: 0;
+		background: var(--ink);
+		color: var(--parchment);
+		font-family: "Fraunces", Georgia, serif;
+	}
+
+	input:focus {
+		outline: none;
+	}
+}
+
+@layer utilities {
+	.font-display {
+		font-family: "Fraunces", Georgia, serif;
+	}
+	.font-mono-label {
+		font-family: "IBM Plex Mono", ui-monospace, monospace;
+	}
+}
