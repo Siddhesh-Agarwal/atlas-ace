@@ -5,6 +5,8 @@ import {
 	type Mode,
 	randomCountry,
 } from "./lib/countries";
+import '@fontsource-variable/fraunces';
+import '@fontsource/ibm-plex-mono';
 
 type Phase = "guessing" | "correct" | "wrong";
 
@@ -100,7 +102,7 @@ export default function App() {
 
 	return (
 		<div className="min-h-screen w-full flex justify-center px-6 py-12 sm:py-16">
-			<div className="w-full max-w-[560px]">
+			<div className="w-full max-w-140">
 				<div
 					className="flex items-start justify-between gap-6 pb-6 border-b"
 					style={{ borderColor: "var(--line)" }}
@@ -195,7 +197,7 @@ export default function App() {
 						/>
 					</form>
 
-					<div className="mt-4 min-h-[28px] flex items-center justify-between">
+					<div className="mt-4 min-h-7 flex items-center justify-between">
 						<div className="font-mono-label text-[13px]">
 							{phase === "correct" && (
 								<span style={{ color: "var(--teal)" }}>
