@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	type CountryEntry,
 	checkGuess,
+	countries,
 	type Mode,
 	randomCountry,
 } from "./lib/countries";
-import '@fontsource-variable/fraunces';
-import '@fontsource/ibm-plex-mono';
+import "@fontsource-variable/fraunces";
+import "@fontsource/ibm-plex-mono";
 
 type Phase = "guessing" | "correct" | "wrong";
 
@@ -19,11 +27,15 @@ function initialStats(): ModeStats {
 	return { streak: 0, best: 0 };
 }
 
+const countryOptions = [...countries].sort((a, b) =>
+	a.name.localeCompare(b.name),
+);
+
 export default function App() {
 	const [mode, setMode] = useState<Mode>("capital");
 	const [current, setCurrent] = useState<CountryEntry>(() => randomCountry());
 	const [phase, setPhase] = useState<Phase>("guessing");
-	const [input, setInput] = useState("");
+	const [selectedCountry, setSelectedCountry] = useState("");
 	const [hintUsed, setHintUsed] = useState(false);
 	const [rounds, setRounds] = useState(0);
 	const [stats, setStats] = useState<Record<Mode, ModeStats>>({
@@ -31,11 +43,13 @@ export default function App() {
 		currency: initialStats(),
 	});
 
-	const inputRef = useRef<HTMLInputElement>(null);
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const guessButtonRef = useRef<HTMLButtonElement>(null);
+	const justSelectedRef = useRef(false);
 	const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
-		inputRef.current?.focus();
+		triggerRef.current?.focus();
 		return () => {
 			if (advanceTimer.current) clearTimeout(advanceTimer.current);
 		};
@@ -45,10 +59,11 @@ export default function App() {
 		if (advanceTimer.current) clearTimeout(advanceTimer.current);
 		setCurrent((prev) => randomCountry(prev.name));
 		setPhase("guessing");
-		setInput("");
+		setSelectedCountry("");
+		justSelectedRef.current = false;
 		setHintUsed(false);
 		setRounds((r) => r + 1);
-		requestAnimationFrame(() => inputRef.current?.focus());
+		requestAnimationFrame(() => triggerRef.current?.focus());
 	}
 
 	function switchMode(next: Mode) {
@@ -57,9 +72,21 @@ export default function App() {
 		if (advanceTimer.current) clearTimeout(advanceTimer.current);
 		setCurrent(randomCountry());
 		setPhase("guessing");
-		setInput("");
+		setSelectedCountry("");
+		justSelectedRef.current = false;
 		setHintUsed(false);
-		requestAnimationFrame(() => inputRef.current?.focus());
+		requestAnimationFrame(() => triggerRef.current?.focus());
+	}
+
+	function handleValueChange(
+		value: string | null,
+		eventDetails: { reason: string },
+	) {
+		if (value === null) return;
+		if (eventDetails.reason === "item-press") {
+			justSelectedRef.current = true;
+		}
+		setSelectedCountry(value);
 	}
 
 	function handleSubmit(e: React.FormEvent) {
@@ -68,9 +95,9 @@ export default function App() {
 			nextRound();
 			return;
 		}
-		if (!input.trim()) return;
+		if (!selectedCountry) return;
 
-		const correct = checkGuess(input, current, mode);
+		const correct = checkGuess(selectedCountry, current, mode);
 		if (correct) {
 			setPhase("correct");
 			setStats((s) => {
@@ -173,28 +200,60 @@ export default function App() {
 					</p>
 
 					<form onSubmit={handleSubmit} className="mt-7">
-						<input
-							ref={inputRef}
-							type="text"
-							value={input}
-							disabled={phase !== "guessing"}
-							onChange={(e) => setInput(e.target.value)}
-							placeholder="Type the country"
-							autoComplete="off"
-							autoCorrect="off"
-							spellCheck={false}
-							className="w-full bg-transparent font-display text-[22px] pb-3 border-b"
-							style={{
-								color: "var(--parchment)",
-								borderColor:
-									phase === "correct"
-										? "var(--teal)"
-										: phase === "wrong"
-											? "var(--rust)"
-											: "var(--line)",
-								caretColor: "var(--brass-bright)",
-							}}
-						/>
+						<div className="flex items-end gap-4">
+							<Select
+								value={selectedCountry}
+								onValueChange={handleValueChange}
+								disabled={phase !== "guessing"}
+							>
+								<SelectTrigger
+									ref={triggerRef}
+									type="button"
+									aria-label="Country"
+									className="flex-1 w-full cursor-pointer rounded-none border-0 border-b bg-transparent px-0 py-0 pb-3 font-display text-[22px] shadow-none data-[size=default]:h-auto"
+									style={{
+										color: "var(--parchment)",
+										borderColor:
+											phase === "correct"
+												? "var(--teal)"
+												: phase === "wrong"
+													? "var(--rust)"
+													: "var(--line)",
+									}}
+								>
+									<SelectValue
+										placeholder="Select a country"
+										className="data-placeholder:text-[color:var(--parchment-dim)]"
+									/>
+								</SelectTrigger>
+								<SelectContent
+									alignItemWithTrigger={false}
+									className="max-h-[min(20rem,var(--available-height))]"
+									finalFocus={() => {
+										if (justSelectedRef.current) {
+											justSelectedRef.current = false;
+											return guessButtonRef.current;
+										}
+										return true;
+									}}
+								>
+									{countryOptions.map((country) => (
+										<SelectItem key={country.name} value={country.name}>
+											{country.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<button
+								ref={guessButtonRef}
+								type="submit"
+								disabled={phase !== "guessing" || !selectedCountry}
+								className="font-mono-label text-[13px] pb-3 disabled:opacity-30 btn-physics"
+								style={{ color: "var(--brass-bright)" }}
+							>
+								Guess
+							</button>
+						</div>
 					</form>
 
 					<div className="mt-4 min-h-7 flex items-center justify-between">
