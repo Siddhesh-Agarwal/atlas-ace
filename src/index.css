@@ -25,13 +25,19 @@
 		--foreground: var(--parchment);
 		--popover: var(--ink-deep);
 		--popover-foreground: var(--parchment);
+		--primary: var(--brass);
+		--primary-foreground: var(--ink);
+		--secondary: var(--line-bright);
+		--secondary-foreground: var(--parchment);
+		--muted: var(--line-bright);
+		--muted-foreground: var(--parchment-dim);
 		--accent: var(--brass-glow);
 		--accent-foreground: var(--parchment);
-		--muted-foreground: var(--parchment-dim);
 		--border: var(--line-bright);
 		--input: var(--line-bright);
 		--ring: var(--brass-bright);
 		--destructive: var(--rust);
+		--radius: 0.5rem;
 	}
 
 	* {
@@ -64,13 +70,26 @@
 	--color-foreground: var(--foreground);
 	--color-popover: var(--popover);
 	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
-	--color-muted-foreground: var(--muted-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
 	--color-destructive: var(--destructive);
+}
+
+@utility no-scrollbar {
+	scrollbar-width: none;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
 }
 
 @layer utilities {

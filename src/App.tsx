@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+	Combobox,
+	ComboboxContent,
+	ComboboxEmpty,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxList,
+} from "@/components/ui/combobox";
+import { cn } from "@/lib/utils";
 import {
 	type CountryEntry,
 	checkGuess,
@@ -27,15 +29,30 @@ function initialStats(): ModeStats {
 	return { streak: 0, best: 0 };
 }
 
-const countryOptions = [...countries].sort((a, b) =>
-	a.name.localeCompare(b.name),
+const countryOptions = [...countries]
+	.sort((a, b) => a.name.localeCompare(b.name))
+	.map((country) => country.name);
+
+const countryByName = new Map(
+	countries.map((country) => [country.name, country] as const),
 );
+
+function filterCountry(name: string, query: string): boolean {
+	const q = query.trim().toLowerCase();
+	if (!q) return true;
+	const country = countryByName.get(name);
+	if (!country) return false;
+	return [country.name, ...country.aliases].some((alias) =>
+		alias.toLowerCase().includes(q),
+	);
+}
 
 export default function App() {
 	const [mode, setMode] = useState<Mode>("capital");
 	const [current, setCurrent] = useState<CountryEntry>(() => randomCountry());
 	const [phase, setPhase] = useState<Phase>("guessing");
 	const [selectedCountry, setSelectedCountry] = useState("");
+	const [countryQuery, setCountryQuery] = useState("");
 	const [hintUsed, setHintUsed] = useState(false);
 	const [rounds, setRounds] = useState(0);
 	const [stats, setStats] = useState<Record<Mode, ModeStats>>({
@@ -43,27 +60,37 @@ export default function App() {
 		currency: initialStats(),
 	});
 
-	const triggerRef = useRef<HTMLButtonElement>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
 	const guessButtonRef = useRef<HTMLButtonElement>(null);
+	const nextRoundButtonRef = useRef<HTMLButtonElement>(null);
 	const justSelectedRef = useRef(false);
+	const selectedCountryRef = useRef("");
 	const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
-		triggerRef.current?.focus();
+		inputRef.current?.focus();
 		return () => {
 			if (advanceTimer.current) clearTimeout(advanceTimer.current);
 		};
 	}, []);
+
+	useEffect(() => {
+		if (phase === "wrong") {
+			nextRoundButtonRef.current?.focus();
+		}
+	}, [phase]);
 
 	function nextRound() {
 		if (advanceTimer.current) clearTimeout(advanceTimer.current);
 		setCurrent((prev) => randomCountry(prev.name));
 		setPhase("guessing");
 		setSelectedCountry("");
+		selectedCountryRef.current = "";
+		setCountryQuery("");
 		justSelectedRef.current = false;
 		setHintUsed(false);
 		setRounds((r) => r + 1);
-		requestAnimationFrame(() => triggerRef.current?.focus());
+		requestAnimationFrame(() => inputRef.current?.focus());
 	}
 
 	function switchMode(next: Mode) {
@@ -73,20 +100,32 @@ export default function App() {
 		setCurrent(randomCountry());
 		setPhase("guessing");
 		setSelectedCountry("");
+		selectedCountryRef.current = "";
+		setCountryQuery("");
 		justSelectedRef.current = false;
 		setHintUsed(false);
-		requestAnimationFrame(() => triggerRef.current?.focus());
+		requestAnimationFrame(() => inputRef.current?.focus());
 	}
 
 	function handleValueChange(
 		value: string | null,
 		eventDetails: { reason: string },
 	) {
-		if (value === null) return;
-		if (eventDetails.reason === "item-press") {
-			justSelectedRef.current = true;
+		const next = value ?? "";
+		selectedCountryRef.current = next;
+		setSelectedCountry(next);
+		setCountryQuery(next);
+		justSelectedRef.current =
+			next !== "" && eventDetails.reason === "item-press";
+	}
+
+	function handleInputValueChange(value: string) {
+		setCountryQuery(value);
+		if (value !== selectedCountryRef.current) {
+			selectedCountryRef.current = "";
+			setSelectedCountry("");
+			justSelectedRef.current = false;
 		}
-		setSelectedCountry(value);
 	}
 
 	function handleSubmit(e: React.FormEvent) {
@@ -200,35 +239,37 @@ export default function App() {
 					</p>
 
 					<form onSubmit={handleSubmit} className="mt-7">
-						<div className="flex items-end gap-4">
-							<Select
-								value={selectedCountry}
+						<div className="flex items-baseline gap-4">
+							<Combobox
+								items={countryOptions}
+								value={selectedCountry || null}
 								onValueChange={handleValueChange}
+								inputValue={countryQuery}
+								onInputValueChange={handleInputValueChange}
+								filter={filterCountry}
+								autoHighlight
 								disabled={phase !== "guessing"}
 							>
-								<SelectTrigger
-									ref={triggerRef}
-									type="button"
+								<ComboboxInput
+									ref={inputRef}
 									aria-label="Country"
-									className="flex-1 w-full cursor-pointer rounded-none border-0 border-b bg-transparent px-0 py-0 pb-3 font-display text-[22px] shadow-none data-[size=default]:h-auto"
-									style={{
-										color: "var(--parchment)",
-										borderColor:
-											phase === "correct"
-												? "var(--teal)"
-												: phase === "wrong"
-													? "var(--rust)"
-													: "var(--line)",
-									}}
-								>
-									<SelectValue
-										placeholder="Select a country"
-										className="data-placeholder:text-[color:var(--parchment-dim)]"
-									/>
-								</SelectTrigger>
-								<SelectContent
-									alignItemWithTrigger={false}
-									className="max-h-[min(20rem,var(--available-height))]"
+									placeholder="Type or select a country"
+									autoComplete="off"
+									autoCorrect="off"
+									spellCheck={false}
+									disabled={phase !== "guessing"}
+									triggerLabel="Show country options"
+									className={cn(
+										"h-auto w-full flex-1 rounded-none border-0 border-b bg-transparent shadow-none",
+										phase === "correct"
+											? "border-[color:var(--teal)]"
+											: phase === "wrong"
+												? "border-[color:var(--rust)]"
+												: "border-[color:var(--line)]",
+									)}
+									inputClassName="h-auto px-3 py-2 font-display text-[22px] leading-tight md:text-[22px] md:leading-tight"
+								/>
+								<ComboboxContent
 									finalFocus={() => {
 										if (justSelectedRef.current) {
 											justSelectedRef.current = false;
@@ -237,18 +278,21 @@ export default function App() {
 										return true;
 									}}
 								>
-									{countryOptions.map((country) => (
-										<SelectItem key={country.name} value={country.name}>
-											{country.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+									<ComboboxEmpty>No countries found.</ComboboxEmpty>
+									<ComboboxList>
+										{(item: string) => (
+											<ComboboxItem key={item} value={item} className="pl-2">
+												{item}
+											</ComboboxItem>
+										)}
+									</ComboboxList>
+								</ComboboxContent>
+							</Combobox>
 							<button
 								ref={guessButtonRef}
 								type="submit"
 								disabled={phase !== "guessing" || !selectedCountry}
-								className="font-mono-label text-[13px] pb-3 disabled:opacity-30 btn-physics"
+								className="font-mono-label text-[13px] pb-2 disabled:opacity-30 btn-physics"
 								style={{ color: "var(--brass-bright)" }}
 							>
 								Guess
@@ -299,6 +343,7 @@ export default function App() {
 						</button>
 						{phase !== "guessing" && (
 							<button
+								ref={nextRoundButtonRef}
 								type="button"
 								onClick={() => nextRound()}
 								className="font-mono-label text-[13px] ml-auto"
